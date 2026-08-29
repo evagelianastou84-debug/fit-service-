@@ -61,7 +61,12 @@ async def analyze_photo(
     mode = "full" if quality_score >= QUALITY_GATE_THRESHOLD else "fallback_overlay"
 
     try:
-        measurements = estimate_measurements(pose_result["landmarks"], height_cm)
+        measurements = estimate_measurements(
+            pose_result["landmarks"],
+            height_cm,
+            pose_result["image_width"],
+            pose_result["image_height"],
+        )
     except ValueError as e:
         return {
             "detected": True,
