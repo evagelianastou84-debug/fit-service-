@@ -31,14 +31,11 @@ def _ensure_model():
 def detect_pose(image_path: str) -> dict:
     _ensure_model()
 
-    # Phone photos often store pixel data in landscape orientation with
-    # an EXIF rotation tag attached. MediaPipe reads raw pixels and
-    # ignores that tag, which silently corrupts every downstream
-    # measurement if we don't correct it here first.
     pil_image = Image.open(image_path)
     pil_image = ImageOps.exif_transpose(pil_image)
     pil_image = pil_image.convert("RGB")
     image_np = np.array(pil_image)
+    image_width, image_height = pil_image.size
 
     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_np)
 
@@ -67,4 +64,10 @@ def detect_pose(image_path: str) -> dict:
     key_points = ["left_shoulder", "right_shoulder", "left_hip", "right_hip", "left_ankle", "right_ankle"]
     quality_score = float(np.mean([landmarks[p]["visibility"] for p in key_points]))
 
-    return {"landmarks": landmarks, "quality_score": quality_score, "detected": True}
+    return {
+        "landmarks": landmarks,
+        "quality_score": quality_score,
+        "detected": True,
+        "image_width": image_width,
+        "image_height": image_height,
+    }
