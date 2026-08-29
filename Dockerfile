@@ -1,9 +1,9 @@
 FROM python:3.12-slim
 
-# System libraries MediaPipe needs for its graphics/vision components
-# (this is exactly what was missing on Render's plain Python runtime)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
+    libgles2 \
+    libegl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
