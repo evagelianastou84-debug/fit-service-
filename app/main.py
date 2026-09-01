@@ -5,6 +5,7 @@ Run with: uvicorn app.main:app --reload --port 8001
 
 import tempfile
 from pathlib import Path
+from typing import Union
 
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,7 +20,7 @@ from app.measurements import (
 from app.body_type import classify_body_type
 from app.quality_checks import apply_quality_checks
 
-app = FastAPI(title="Fit Service", version="0.2.0")
+app = FastAPI(title="Fit Service", version="0.2.1")
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,12 +44,22 @@ async def _save_upload(upload: UploadFile) -> str:
         return tmp.name
 
 
+def _is_real_upload(value) -> bool:
+    """
+    Swagger UI's 'Try it out' sends an empty string instead of omitting
+    the field entirely when an optional file input is left blank. This
+    checks for an actual uploaded file with content, treating empty
+    strings / None the same way as 'not provided'.
+    """
+    return isinstance(value, UploadFile) and bool(value.filename)
+
+
 @app.post("/analyze-photo")
 async def analyze_photo(
     photo: UploadFile = File(...),
     height_cm: float = Form(...),
     weight_kg: float | None = Form(None),
-    side_photo: UploadFile | None = File(None),
+    side_photo: Union[UploadFile, str, None] = File(None),
     known_body_type: str | None = Form(None),
 ):
     """
@@ -98,10 +109,8 @@ async def analyze_photo(
 
     measurements = apply_weight_correction(measurements, height_cm, weight_kg)
 
-    # Optional side photo: upgrades width-only estimates to real
-    # circumference using the ellipse-perimeter technique.
     circumference = None
-    if side_photo is not None:
+    if _is_real_upload(side_photo):
         side_path = await _save_upload(side_photo)
         try:
             side_pose = detect_pose(side_path)
